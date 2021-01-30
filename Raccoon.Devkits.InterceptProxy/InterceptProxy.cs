@@ -13,21 +13,17 @@ namespace Raccoon.Devkits.InterceptProxy
         private IServiceProvider _serviceProvider = null!;
         public TIService Target { get; private set; } = null!;
         public Type ImplementType { get; private set; } = null!;
-        public IInterceptor[]? Interceptors { get; private set; }
-        public Type[]? InterceptorTypes { get; private set; }
-        
+        public IInterceptor[] Interceptors { get; private set; } = null!;
+        public Type[] InterceptorTypes { get; private set; } = null!;
+
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            if (Interceptors is null) { return targetMethod!.Invoke(Target, args); }
-            else
-            {
-                foreach (var interceptor in Interceptors)
-                { interceptor.BeforeExecute(Target, targetMethod!, args);}
-                object? result = targetMethod?.Invoke(Target, args);
-                foreach (var interceptor in Interceptors)
-                { interceptor.AfterExecute(Target, targetMethod!, args, result); }
-                return result;
-            }
+            foreach (var interceptor in Interceptors)
+            { interceptor.BeforeExecute(Target, targetMethod!, args); }
+            object? result = targetMethod?.Invoke(Target, args);
+            foreach (var interceptor in Interceptors)
+            { interceptor.AfterExecute(Target, targetMethod!, args, result); }
+            return result;
         }
 
         public static TIService CreateProxy(Type implementType, IServiceProvider serviceProvider, TIService target, params Type[]? interceptorTypes)
@@ -37,8 +33,14 @@ namespace Raccoon.Devkits.InterceptProxy
             proxy._serviceProvider = serviceProvider;
             proxy.ImplementType = implementType;
             proxy.Target = target;
-            proxy.InterceptorTypes = interceptorTypes;
-            proxy.Interceptors = interceptorTypes?.Select(item =>
+            var interceptorTypesFromInterface = typeof(TIService).GetCustomAttributes<InterceptorAttribute>()
+                    .Select(item=>item.InterceptorType);
+            var interceptorTypesFromImplementation = implementType.GetCustomAttributes<InterceptorAttribute>()
+                    .Select(item=>item.InterceptorType); 
+            proxy.InterceptorTypes = (interceptorTypes ?? Enumerable.Empty<Type>()).Concat(interceptorTypesFromInterface)
+                .Concat(interceptorTypesFromImplementation).ToArray();
+
+            proxy.Interceptors = proxy.InterceptorTypes.Select(item =>
                 (serviceProvider.GetRequiredService(item) as IInterceptor)!).ToArray();
             return (proxy as TIService)!;
 

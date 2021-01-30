@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Raccoon.Devkits.InterceptProxy.UnitTest.TestEnvironment
 {
+    [Interceptor(typeof(AbstractInterceptorSample))]
     public interface IServiceSample
     {
         int ValueProperty { get; set; }
