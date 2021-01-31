@@ -16,16 +16,18 @@ namespace Raccoon.Devkits.InterceptProxy
         public IInterceptor[] Interceptors { get; private set; } = null!;
         public Type[] InterceptorTypes { get; private set; } = null!;
 
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-        {
-            foreach (var interceptor in Interceptors)
-            { interceptor.BeforeExecute(Target, targetMethod!, args); }
-            object? result = targetMethod?.Invoke(Target, args);
-            foreach (var interceptor in Interceptors)
-            { interceptor.AfterExecute(Target, targetMethod!, args, result); }
-            return result;
-        }
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
+            Execute(Target, targetMethod!, args, Interceptors);
 
+        private object? Execute(object target, MethodInfo targetMethod, object?[]? args, IEnumerable<IInterceptor> interceptors)
+            => interceptors.Count() switch
+            {
+                0 => targetMethod.Invoke(target,args),
+                _ => interceptors.First().OnExecuting(target,targetMethod,args,
+                    ()=>Execute(target, targetMethod, args, interceptors.Skip(1)))
+            };
+        
+        
         public static TIService CreateProxy(Type implementType, IServiceProvider serviceProvider, TIService target, params Type[]? interceptorTypes)
         {
             InterceptProxy<TIService> proxy = (Create<TIService, InterceptProxy<TIService>>()

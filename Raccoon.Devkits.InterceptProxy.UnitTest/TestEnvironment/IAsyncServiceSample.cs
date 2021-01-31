@@ -6,11 +6,9 @@ using System.Threading.Tasks;
 
 namespace Raccoon.Devkits.InterceptProxy.UnitTest.TestEnvironment
 {
-    [Interceptor(typeof(ConstructedGenericInterceptorSample))]
-    public interface IServiceSample
+    [Interceptor(typeof(InterfaceInterceptorSample))]
+    public interface IAsyncServiceSample
     {
-        int ValueProperty { get; set; }
-        void VoidMethod();
-        int FuncMethod();
+        ValueTask<int> TestAsync();
     }
 }

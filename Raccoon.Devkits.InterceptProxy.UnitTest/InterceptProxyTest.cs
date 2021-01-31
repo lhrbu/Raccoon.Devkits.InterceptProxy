@@ -15,13 +15,17 @@ namespace Raccoon.Devkits.InterceptProxy.UnitTest
         public InterceptProxyTest()
         {
             IServiceCollection services = new ServiceCollection();
-            services.AddTransient<IInterceptorSample>();
-            services.AddTransient<AbstractInterceptorSample>();
-            services.AddTransient<FullGenericInterceptor<IServiceSample>>();
+            services.AddTransient<InterfaceInterceptorSample>();
+            services.AddTransient<ConstructedGenericInterceptorSample>();
+            services.AddTransient<UnConstructedGenericInterceptor<IServiceSample>>();
             services.AddTransientProxy<IServiceSample, ServiceSample>(
-                typeof(IInterceptorSample),
-                typeof(AbstractInterceptorSample),
-                typeof(FullGenericInterceptor<IServiceSample>));
+                typeof(InterfaceInterceptorSample),
+                typeof(ConstructedGenericInterceptorSample),
+                typeof(UnConstructedGenericInterceptor<IServiceSample>));
+
+            services.AddTransient<UnConstructedGenericInterceptor<IAsyncServiceSample>>();
+            services.AddTransientProxy<IAsyncServiceSample, AsyncServiceSample>();
+
             _serviceProvider = services.BuildServiceProvider();
         }
 
@@ -33,6 +37,20 @@ namespace Raccoon.Devkits.InterceptProxy.UnitTest
             serviceSample.VoidMethod();
             int value = serviceSample.FuncMethod();
             Assert.Equal(serviceSample.ValueProperty, value);
+        }
+
+        [Fact]
+        public async Task AsyncInvokeTest()
+        {
+            try
+            {
+                IAsyncServiceSample serviceSample = _serviceProvider.GetRequiredService<IAsyncServiceSample>();
+                Type type = serviceSample.GetType();
+                int ret = await serviceSample.TestAsync().ConfigureAwait(true);
+            }catch(ArgumentException exp)
+            {
+                Assert.Equal("target", exp.ParamName);
+            }
         }
     }
 }
